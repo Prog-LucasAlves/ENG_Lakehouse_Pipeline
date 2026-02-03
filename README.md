@@ -1,10 +1,12 @@
-# ENG_Lakehouse_Pipeline
+# Lakehouse Pipeline
 Projeto de Engenharia de Dados que simula uma arquitetura moderna de Lakehouse para e-commerce, usando Supabase como origem, Fivetran para ingestão e Databricks para processamento e análises.
 
 **Stack principal**
 1. **Supabase (Postgres)**: base transacional e origem dos dados.
 1. **Fivetran**: ingestão ELT da origem para o Lakehouse.
 1. **Databricks**: transformação, modelagem e camadas analíticas.
+
+![](https://github.com/Prog-LucasAlves/ENG_Lakehouse_Pipeline/blob/main/image/projeto.png?raw=true)
 
 ---
 
@@ -45,12 +47,17 @@ dbname=SEU_DB
 ---
 
 ## Instalação
-Para o ambiente virtual utilizamos o `UV`
+
+1. Instale o `UV` globalmente (se ainda não tiver)
+2. Inicie o ambiente virtual e instale dependências:
 
 ```bash
-uv init
+uv init    # Inicializa o uv no diretório atual
+uv venv    # Cria o ambiente virtual
+uv sync    # Instala as dependências do pyproject.toml
 ```
 
+Documentação do `UV` -> [LINK](https://docs.astral.sh/uv/guides/install-python/)
 ---
 
 ## Como gerar dados no Supabase
@@ -79,6 +86,12 @@ No Databricks, crie camadas típicas:
 1. **Silver**: dados limpos e normalizados.
 1. **Gold**: visões analíticas para BI.
 
+Na pasta `utlis` (arquivo **create_catalog_schemas.ipynb**), tem os codigos para criar o `catalog` de cada camada.
+
+Na pasta `utils` (arquivo **create_grant.ipynb**), tem os códigos para criar as permissões de acesso.
+
+![](https://github.com/Prog-LucasAlves/ENG_Lakehouse_Pipeline/blob/main/image/acesso_aos_dados.png?raw=true)
+
 Exemplo de transformações:
 - Normalizar dimensões de clientes e produtos.
 - Agregar receita por período, categoria, marca e região.
@@ -103,4 +116,4 @@ Tabelas geradas pelo script:
 ---
 
 ## Licença
-Veja `LICENSE`.
+Veja [`LICENSE`](https://github.com/Prog-LucasAlves/ENG_Lakehouse_Pipeline/blob/main/LICENSE).
