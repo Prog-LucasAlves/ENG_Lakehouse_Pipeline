@@ -1,3 +1,6 @@
+# Script que realiza a conexão com o banco de dados, verifica se as tabelas existem(Caso não ele cria), e insere os dados.
+
+# Bibliotecas utilizadas
 import supabase.conect_supabase_db
 from src import list_auxiliar
 from supabase.model_supabase_db import (
@@ -25,9 +28,9 @@ from sqlalchemy import text
 import sqlalchemy as sa
 
 # Quantidades
-NUM_CLIENTES = 300
-NUM_PRODUTOS = 50
-NUM_PEDIDOS = 800
+NUM_CLIENTES = 3000
+NUM_PRODUTOS = 100
+NUM_PEDIDOS = 80000
 
 # Dados auxiliares
 DDD_BR = list_auxiliar.DDD_BR
@@ -54,6 +57,7 @@ engine = get_engine()
 
 
 def drop_tables():
+    """Exclui todas as tabelas do banco de dados."""
     with engine.begin() as connection:
         connection.execute(text("DROP TABLE IF EXISTS itenspedido CASCADE"))
         connection.execute(text("DROP TABLE IF EXISTS pedidos CASCADE"))
@@ -76,52 +80,66 @@ def drop_tables():
     Base.metadata.create_all(engine)
 
 
-def insert_data_assistant():
-    # Inserir dados tabela status - forma_pagamento - canal_venda - genero
+def table_empty(table):
+    """Verifica se uma tabela está vazia."""
     with engine.begin() as connection:
-        connection.execute(
-            status.__table__.insert(),
-            [{"nome": nome} for nome in STATUS_PEDIDO],
-        )
-        connection.execute(
-            formapagamento.__table__.insert(),
-            [{"nome": nome} for nome in FORMA_PAGAMENTO],
-        )
-        connection.execute(
-            canalvenda.__table__.insert(),
-            [{"nome": nome} for nome in CANAL_VENDA],
-        )
-        connection.execute(
-            generocliente.__table__.insert(),
-            [{"nome": nome} for nome in GENEROS_PESSOAS],
-        )
-        connection.execute(
-            categorias.__table__.insert(),
-            [{"nome": nome} for nome in CATEGORIAS],
-        )
-        connection.execute(
-            generoproduto.__table__.insert(),
-            [{"nome": nome} for nome in GENEROS_PRODUTOS],
-        )
-        connection.execute(
-            marcas.__table__.insert(),
-            [{"nome": nome} for nome in MARCAS],
-        )
-        connection.execute(
-            estadocivil.__table__.insert(),
-            [{"nome": nome} for nome in ESTADO_CIVIL],
-        )
-        connection.execute(
-            emailmarketing.__table__.insert(),
-            [{"nome": nome} for nome in EMAIL_MARKETING],
-        )
-        connection.execute(
-            entregue.__table__.insert(),
-            [{"nome": nome} for nome in ENTREGUE],
-        )
+        result = connection.execute(sa.text(f"SELECT COUNT(*) FROM {table}"))
+        return result == 0
+
+
+def insert_data_assistant():
+    """Insere dados auxiliares nas tabelas correspondentes."""
+
+    if not table_empty("status"):
+        print("Tabelas auxiliates já populadas")
+        return
+    else:
+        with engine.begin() as connection:
+            connection.execute(
+                status.__table__.insert(),
+                [{"nome": nome} for nome in STATUS_PEDIDO],
+            )
+            connection.execute(
+                formapagamento.__table__.insert(),
+                [{"nome": nome} for nome in FORMA_PAGAMENTO],
+            )
+            connection.execute(
+                canalvenda.__table__.insert(),
+                [{"nome": nome} for nome in CANAL_VENDA],
+            )
+            connection.execute(
+                generocliente.__table__.insert(),
+                [{"nome": nome} for nome in GENEROS_PESSOAS],
+            )
+            connection.execute(
+                categorias.__table__.insert(),
+                [{"nome": nome} for nome in CATEGORIAS],
+            )
+            connection.execute(
+                generoproduto.__table__.insert(),
+                [{"nome": nome} for nome in GENEROS_PRODUTOS],
+            )
+            connection.execute(
+                marcas.__table__.insert(),
+                [{"nome": nome} for nome in MARCAS],
+            )
+            connection.execute(
+                estadocivil.__table__.insert(),
+                [{"nome": nome} for nome in ESTADO_CIVIL],
+            )
+            connection.execute(
+                emailmarketing.__table__.insert(),
+                [{"nome": nome} for nome in EMAIL_MARKETING],
+            )
+            connection.execute(
+                entregue.__table__.insert(),
+                [{"nome": nome} for nome in ENTREGUE],
+            )
 
 
 def insert_data_clientes():
+    """Insere dados de clientes no banco de dados."""
+
     batch = []
 
     for i in tqdm(range(NUM_CLIENTES), desc="Inserindo clientes"):
@@ -187,76 +205,85 @@ def insert_data_clientes():
 
 
 def insert_data_produtos():
-    batch = []
+    """Insere dados de produtos no banco de dados."""
 
-    for _ in tqdm(range(NUM_PRODUTOS), desc="Inserindo produtos"):
-        sku = fake.isbn13(separator="")
-        marca = random.choice(MARCAS)
-        id_marca = MARCAS.index(marca) + 1
-        modelos_marca = MODELOS.get(marca)
-        modelo = random.choice(modelos_marca)
-        nome = f"{marca} {modelo}"
-        descricao = fake.text(max_nb_chars=200)
-        preco = round(random.uniform(97, 345), 2)
-        margem = random.uniform(0.40, 0.60)
-        preco_custo = round(preco * (1 - margem), 2)
-        estoque = random.randint(0, 100)
-        id_categoria = random.randint(1, len(CATEGORIAS))
-        id_genero = random.choices([1, 2, 3], weights=[0.60, 0.36, 0.04], k=1)[0]
-        if id_genero == 1:
-            tamanho = random.choices(
-                ["37", "38", "39", "40", "41", "42", "43", "44"],
-                weights=[5, 8, 15, 18, 18, 15, 8, 5],
-                k=1,
-            )[0]
-        elif id_genero == 2:
-            tamanho = random.choices(
-                ["34", "35", "36", "37", "38", "39", "40"],
-                weights=[5, 8, 18, 20, 18, 10, 5],
-                k=1,
-            )[0]
-        else:
-            tamanho = random.choices(
-                ["34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44"],
-                weights=[3, 5, 8, 12, 15, 15, 15, 12, 8, 5, 3],
-                k=1,
-            )[0]
-        cor = random.choice(CORES)
+    if not table_empty("produtos"):
+        print("Produtos já existem - pulando carga")
+        return
+    else:
+        print("Populando produtos...")
 
-        # Batch insert
-        batch.append(
-            {
-                "sku": sku,
-                "nome": nome,
-                "descricao": descricao,
-                "preco": preco,
-                "preco_custo": preco_custo,
-                "margem": margem,
-                "tamanho": tamanho,
-                "estoque": estoque,
-                "id_categoria": id_categoria,
-                "id_marca": id_marca,
-                "modelo": modelo,
-                "id_genero": id_genero,
-                "cor": cor,
-            },
-        )
+        batch = []
 
-        if len(batch) >= 10:
+        for _ in tqdm(range(NUM_PRODUTOS), desc="Inserindo produtos"):
+            sku = fake.isbn13(separator="")
+            marca = random.choice(MARCAS)
+            id_marca = MARCAS.index(marca) + 1
+            modelos_marca = MODELOS.get(marca)
+            modelo = random.choice(modelos_marca)
+            nome = f"{marca} {modelo}"
+            descricao = fake.text(max_nb_chars=200)
+            preco = round(random.uniform(97, 345), 2)
+            margem = random.uniform(0.40, 0.60)
+            preco_custo = round(preco * (1 - margem), 2)
+            estoque = random.randint(0, 100)
+            id_categoria = random.randint(1, len(CATEGORIAS))
+            id_genero = random.choices([1, 2, 3], weights=[0.60, 0.36, 0.04], k=1)[0]
+            if id_genero == 1:
+                tamanho = random.choices(
+                    ["37", "38", "39", "40", "41", "42", "43", "44"],
+                    weights=[5, 8, 15, 18, 18, 15, 8, 5],
+                    k=1,
+                )[0]
+            elif id_genero == 2:
+                tamanho = random.choices(
+                    ["34", "35", "36", "37", "38", "39", "40"],
+                    weights=[5, 8, 18, 20, 18, 10, 5],
+                    k=1,
+                )[0]
+            else:
+                tamanho = random.choices(
+                    ["34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44"],
+                    weights=[3, 5, 8, 12, 15, 15, 15, 12, 8, 5, 3],
+                    k=1,
+                )[0]
+            cor = random.choice(CORES)
+
+            # Batch insert
+            batch.append(
+                {
+                    "sku": sku,
+                    "nome": nome,
+                    "descricao": descricao,
+                    "preco": preco,
+                    "preco_custo": preco_custo,
+                    "margem": margem,
+                    "tamanho": tamanho,
+                    "estoque": estoque,
+                    "id_categoria": id_categoria,
+                    "id_marca": id_marca,
+                    "modelo": modelo,
+                    "id_genero": id_genero,
+                    "cor": cor,
+                },
+            )
+
+            if len(batch) >= 10:
+                with engine.begin() as connection:
+                    connection.execute(produtos.__table__.insert(), batch)
+                batch = []
+
+        # 🔥 INSERE O RESTO
+        if batch:
             with engine.begin() as connection:
                 connection.execute(produtos.__table__.insert(), batch)
-            batch = []
 
-    # 🔥 INSERE O RESTO
-    if batch:
-        with engine.begin() as connection:
-            connection.execute(produtos.__table__.insert(), batch)
-
-    print("Produtos inseridos com sucesso!")
+        print("Produtos inseridos com sucesso!")
 
 
 def insert_data_pedidos():
-    # Obter IDs de clientes e produtos
+    """Insere dados de pedidos no banco de dados."""
+
     with engine.begin() as connection:
         result_clientes = connection.execute(clientes.__table__.select()).fetchall()
         result_produtos = connection.execute(produtos.__table__.select()).fetchall()
@@ -273,11 +300,13 @@ def insert_data_pedidos():
         subtotal = round(random.uniform(97, 345), 2)
         data_pedido = fake.date_between(start_date="-1y", end_date="today")
         id_canalvenda = random.randint(1, len(CANAL_VENDA))
+
         # Se estado do cliente for SP - RJ e grátis outros 12,50
         if result_clientes[ids_clientes.index(id_cliente)].estado in ["SP", "RJ"]:
             frete = 0
         else:
             frete = 12.50
+
         # Se valor do pedido for maior que 200, desconto de 10%,
         if subtotal > 200:
             valor_desconto = round(subtotal * 0.10, 2)
@@ -286,6 +315,7 @@ def insert_data_pedidos():
         total = subtotal + frete - valor_desconto
         id_forma_pagamento = random.randint(1, len(FORMA_PAGAMENTO))
         id_status = random.randint(1, len(STATUS_PEDIDO))
+
         # Endereço de entrega baseado no cliente do pedido
         endereco_entrega = (
             result_clientes[ids_clientes.index(id_cliente)].endereco
@@ -296,6 +326,7 @@ def insert_data_pedidos():
             + " - "
             + result_clientes[ids_clientes.index(id_cliente)].estado
         )
+
         # Se status for entregue, data_entrega é 3 a 7 dias após data_pedido. Status for
         if id_status == 4:  # Entregue
             data_envio = fake.date_between(start_date=data_pedido, end_date="+2d")
@@ -312,13 +343,13 @@ def insert_data_pedidos():
         elif id_status == 5:  # Cancelado
             data_envio = None
             data_entrega = None
+
         # Verifica se o pedido foi entregue
         if id_status == 4:  # Entregue
             id_entregue = 1  # Sim
         else:
             id_entregue = 2  # Não
 
-        # Batch insert
         batch.append(
             {
                 "id_cliente": id_cliente,
@@ -344,7 +375,6 @@ def insert_data_pedidos():
                 connection.execute(pedidos.__table__.insert(), batch)
             batch = []
 
-    # 🔥 INSERE O RESTO
     if batch:
         with engine.begin() as connection:
             connection.execute(pedidos.__table__.insert(), batch)
@@ -353,7 +383,8 @@ def insert_data_pedidos():
 
 
 def insert_data_itens_pedidos():
-    # Obter IDs de pedidos e produtos
+    """Insere dados de itens pedidos no banco de dados."""
+
     with engine.begin() as connection:
         result_pedidos = connection.execute(pedidos.__table__.select()).fetchall()
         result_produtos = connection.execute(produtos.__table__.select()).fetchall()
@@ -370,7 +401,6 @@ def insert_data_itens_pedidos():
         preco_unitario = round(random.uniform(97, 345), 2)
         subtotal = round(quantidade * preco_unitario, 2)
 
-        # Batch insert
         batch.append(
             {
                 "id_pedido": id_pedido,
@@ -386,7 +416,6 @@ def insert_data_itens_pedidos():
                 connection.execute(itenspedido.__table__.insert(), batch)
             batch = []
 
-    # 🔥 INSERE O RESTO
     if batch:
         with engine.begin() as connection:
             connection.execute(itenspedido.__table__.insert(), batch)
@@ -394,8 +423,9 @@ def insert_data_itens_pedidos():
     print("Itens pedidos inseridos com sucesso!")
 
 
-# Atulizar pedidos baseado em itens_pedido (tabela pedidos id e tabela itens_pedido pedido_id) as quantidades tem que ser iguais e o preco_total tem que ser a soma do preco_unitario * quantidade de itens_pedido tem que somar o mesmo pedido_id e calcular o frete e valor_desconto
 def update_pedidos():
+    """Atualiza os pedidos com base nos itens dos pedidos."""
+
     with engine.begin() as connection:
         result_pedidos = connection.execute(pedidos.__table__.select()).fetchall()
         result_itenspedidos = connection.execute(
@@ -460,7 +490,8 @@ def update_pedidos():
 
 
 if __name__ == "__main__":
-    drop_tables()
+    # drop_tables()
+    Base.metadata.create_all(engine)
     insert_data_assistant()
     insert_data_clientes()
     insert_data_produtos()
