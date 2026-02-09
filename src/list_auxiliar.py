@@ -70,6 +70,7 @@ MODELOS = {
         "Wave Equate",
         "Wave Enigma",
         "Wave Sayonara",
+        "Wave Zonic",
     ],
     "Asics": [
         "Gel-Kayano",

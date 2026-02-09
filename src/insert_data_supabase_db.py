@@ -460,7 +460,7 @@ def update_pedidos():
 
 
 if __name__ == "__main__":
-    # drop_tables()
+    drop_tables()
     insert_data_assistant()
     insert_data_clientes()
     insert_data_produtos()
