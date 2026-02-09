@@ -1,8 +1,12 @@
+# Script para se conectar ao banco de dados PostgreSQl(Supabase)
+
+# Bibliotecas utilizadas
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base
 from dotenv import load_dotenv
 import os
 
+# Carregar variáveis de ambiente do arquivo .env
 load_dotenv()
 
 # Configurações de conexão com o banco de dados
@@ -12,8 +16,10 @@ DB_NAME = os.getenv("DB_NAME")
 DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 
+# URL de conexão com o banco de dados
 DB_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?sslmode=require"
 
+# Criar engine e sessão com o banco de dados
 Base = declarative_base()
 
 
