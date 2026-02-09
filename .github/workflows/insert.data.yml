@@ -38,4 +38,4 @@ jobs:
                 DB_PORT: ${{ secrets.DB_PORT }}
                 DB_NAME: ${{ secrets.DB_NAME }}
               run: |
-                python src/insert_data_supabase_db.py
+                python -m src.insert_data_supabase_db
