@@ -28,9 +28,9 @@ from sqlalchemy import text
 import sqlalchemy as sa
 
 # Quantidades
-NUM_CLIENTES = 3000
-NUM_PRODUTOS = 100
-NUM_PEDIDOS = 80000
+NUM_CLIENTES = random.randint(5, 20)
+NUM_PRODUTOS = 200
+NUM_PEDIDOS = random.randint(200, 400)
 
 # Dados auxiliares
 DDD_BR = list_auxiliar.DDD_BR
@@ -82,9 +82,10 @@ def drop_tables():
 
 def table_empty(table):
     """Verifica se uma tabela está vazia."""
-    with engine.begin() as connection:
-        result = connection.execute(sa.text(f"SELECT COUNT(*) FROM {table}"))
-        return result == 0
+    with engine.connect() as conn:
+        result = conn.execute(text(f"SELECT COUNT(*) FROM {table}"))
+        count = result.scalar()
+        return count == 0
 
 
 def insert_data_assistant():
