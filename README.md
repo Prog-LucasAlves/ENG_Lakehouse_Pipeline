@@ -1,4 +1,7 @@
-# Lakehouse Pipeline: Supabase -> Hevo Data -> Databricks -> Streamlit
+<p align="center">
+  <img src="image/Logo.png" width="300" height="300" alt="Logo">
+  <h1 align="center">E-COMMERCE DE TENIS<br>Lakehouse Pipeline</h1>
+</p>
 
 Pipeline completo de Engenharia de Dados para e-commerce, com geração de dados transacionais no Supabase, ingestão via Hevo Data, processamento no Databricks (camadas Bronze/Silver/Gold) e consumo analítico em Streamlit.
 
