@@ -300,9 +300,15 @@ streamlit run app_streamlit.py
 
 ## Deploy Render
 
-![LINK](https://eng-lakehouse-pipeline.onrender.com)
+> [!IMPORTANT]
+> Inserir os dados de acesso ao Databricks no `Environment` do Render
+>
+> ![](image/environment.png)
+
+[Dashboard](https://eng-lakehouse-pipeline.onrender.com)
+
+---
 
 ## Licença
 
-essa e a
 Consulte `LICENSE`.
