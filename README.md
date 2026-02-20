@@ -1,7 +1,12 @@
-<p align="center">
-  <img src="image/Logo.png" width="300" height="300" alt="Logo">
-  <h1 align="center">E-COMMERCE DE TENIS<br>Lakehouse Pipeline</h1>
-</p>
+<div style="text-align: center; line-height: 0;">
+  <img src="image/Logo.png" width="300" height="300" style="display: block; margin: 0 auto; padding: 0;" alt="Logo">
+  <div style="line-height: 1.2; margin: 0; padding: 0;">
+    <h1 style="margin: 0; padding: 0;">E-COMMERCE DE TENIS</h1>
+    <h2 style="margin: 0; padding: 0;">Lakehouse Pipeline</h2>
+  </div>
+</div>
+
+---
 
 Pipeline completo de Engenharia de Dados para e-commerce, com geração de dados transacionais no Supabase, ingestão via Hevo Data, processamento no Databricks (camadas Bronze/Silver/Gold) e consumo analítico em Streamlit.
 
@@ -292,6 +297,10 @@ streamlit run app_streamlit.py
   - Confirmar se `lakehouse.raw.*` já existe e se há permissões de escrita.
 
 ---
+
+## Deploy Render
+
+![LINK](https://eng-lakehouse-pipeline.onrender.com)
 
 ## Licença
 
