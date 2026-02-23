@@ -283,3 +283,53 @@ WHERE 1 = 1
   {filtro_segmento}
 ORDER BY valor_total_gasto DESC;
         """
+
+    @staticmethod
+    def get_status(data_inicio, data_fim):
+        """Status do pipeline"""
+        return f"""
+        SELECT
+            status_entrega,
+            COUNT(*) as quantidade,
+            COUNT(*) * 100.0 / SUM(COUNT(*)) OVER() as percentual,
+            AVG(dias_em_transporte) as tempo_medio,
+            AVG(frete) as frete_medio
+        FROM lakehouse.silver.fact_pedido
+        WHERE data_pedido BETWEEN '{data_inicio}' AND '{data_fim}'
+        GROUP BY status_entrega
+        ORDER BY quantidade DESC
+        """
+
+    @staticmethod
+    def get_region(data_inicio, data_fim):
+        """Vendas por região"""
+        return f"""
+        SELECT
+            c.estado,
+            COUNT(*) as total_entregas,
+            AVG(fp.dias_em_transporte) as tempo_medio,
+            SUM(CASE WHEN fp.dias_em_transporte <= 3 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as taxa_rapida,
+            AVG(fp.frete) as frete_medio
+        FROM lakehouse.silver.fact_pedido fp
+        JOIN lakehouse.silver.dim_cliente c ON fp.id_cliente = c.id_cliente
+        WHERE fp.data_pedido BETWEEN '{data_inicio}' AND '{data_fim}'
+        AND fp.data_entrega IS NOT NULL
+        GROUP BY c.estado
+        ORDER BY total_entregas DESC
+        """
+
+    @staticmethod
+    def get_timeline(data_inicio, data_fim):
+        """Timeline de vendas"""
+        return f"""
+        SELECT
+            DATE(data_pedido) as data_pedido,
+            AVG(dias_em_transporte) as dias_entrega,
+            COUNT(*) as total_entregas_dia,
+            AVG(frete) as frete_medio_dia
+        FROM lakehouse.silver.fact_pedido
+        WHERE data_pedido BETWEEN '{data_inicio}' AND '{data_fim}'
+        AND data_entrega IS NOT NULL
+        GROUP BY DATE(data_pedido)
+        ORDER BY data_pedido
+        """
