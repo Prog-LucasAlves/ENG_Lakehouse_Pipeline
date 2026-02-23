@@ -89,13 +89,14 @@ st.markdown(
     }
 
     /* Cards de métricas secundárias */
-    .metric-card {
-        background: white;
+     .metric-card {
+        background: #9988d2;
         padding: 1.5rem;
         border-radius: 15px;
         box-shadow: 0 4px 15px rgba(0,0,0,0.08);
         border: 1px solid #E5E7EB;
-        text-align: center;
+        margin-bottom: 20px;  /* Espaço abaixo do card */
+        text-align: left;
     }
 
     /* Cards RFV */
@@ -170,6 +171,12 @@ st.markdown(
         font-size: 0.9rem;
         border-top: 1px solid #E5E7EB;
         margin-top: 3rem;
+    }
+    .card-item {
+        background: #9988d2;
+        padding: 20px;
+        border-radius: 15px;
+        border: 1px solid #E5E7EB;
     }
 </style>
 """,
@@ -308,6 +315,30 @@ def load_rfv_analysis(data_inicio, data_fim, segmento="Todos"):
     return df
 
 
+@st.cache_data(ttl=300)
+def load_status(data_inicio, data_fim):
+    """Carrega status dos pedidos"""
+    query = LakehouseQueries.get_status(data_inicio, data_fim)
+    df = pd.read_sql(query, conn)
+    return df
+
+
+@st.cache_data(ttl=300)
+def load_region(data_inicio, data_fim):
+    """Carrega dados por região"""
+    query = LakehouseQueries.get_region(data_inicio, data_fim)
+    df = pd.read_sql(query, conn)
+    return df
+
+
+@st.cache_data(ttl=300)
+def load_timeline(data_inicio, data_fim):
+    """Carrega timeline de pedidos"""
+    query = LakehouseQueries.get_timeline(data_inicio, data_fim)
+    df = pd.read_sql(query, conn)
+    return df
+
+
 # ============================================
 # FUNÇÕES DE VISUALIZAÇÃO
 # ============================================
@@ -436,7 +467,7 @@ def create_trend_chart(df, title="Evolução da Receita"):
             x=df["data"],
             y=df["receita_total"],
             name="Receita",
-            line=dict(color="#0A2472", width=3),
+            line=dict(color="#715cba", width=3),
             mode="lines+markers",
             marker=dict(size=6),
         ),
@@ -494,7 +525,7 @@ def create_category_chart(df):
             x=df["categoria"],
             y=df["receita_total"],
             name="Receita",
-            marker_color="#0A2472",
+            marker_color="#715cba",
             text=df["receita_total"].apply(lambda x: format_currency(x)),
             textposition="outside",
         ),
@@ -526,7 +557,7 @@ def create_pie_chart(df, values_col, names_col, title):
         values=values_col,
         names=names_col,
         title=title,
-        color_discrete_sequence=px.colors.qualitative.Set3,
+        color_discrete_sequence=["#715cba", "#8572c6", "#ad9ede", "#c1b4ea", "#9988d2"],
         hole=0.4,
     )
 
@@ -535,9 +566,16 @@ def create_pie_chart(df, values_col, names_col, title):
         textinfo="percent+label",
         customdata=df["formatted_value"],
         hovertemplate="<b>%{label}</b><br>Valor: R$ %{customdata}<br>Percentual: %{percent}<extra></extra>",
+        textfont=dict(
+            color="white",  # Texto branco
+            size=12,  # Tamanho do texto
+            family="Arial",  # Fonte mais encorpada para melhor visibilidade
+        ),
     )
 
-    fig.update_layout(height=500)
+    fig.update_layout(
+        height=500,
+    )
 
     return fig
 
@@ -572,6 +610,21 @@ def pagina_vendas():
                 key="vendas_fim",
             )
 
+        st.markdown("### 📊 Visualizações")
+        mostrar_tendencia = st.checkbox(
+            "Gráfico de Tendência",
+            True,
+            key="vendas_tendencia",
+        )
+        mostrar_categorias = st.checkbox(
+            "Análise por Categoria",
+            True,
+            key="vendas_categorias",
+        )
+        mostrar_regioes = st.checkbox("Análise por Região", True, key="vendas_regioes")
+        mostrar_produtos = st.checkbox("Top Produtos", True, key="vendas_produtos")
+        mostrar_canais = st.checkbox("Canais de Venda", True, key="vendas_canais")
+
         st.markdown("---")
         st.markdown(f"**Atualização:** {datetime.now().strftime('%H:%M:%S')}")
 
@@ -582,6 +635,11 @@ def pagina_vendas():
     # Carregar dados
     with st.spinner("Carregando dados de vendas..."):
         df_kpis = load_kpis(data_inicio_str, data_fim_str)
+        df_vendas = load_vendas_diarias(data_inicio_str, data_fim_str)
+        df_categorias = load_top_categorias(data_inicio_str, data_fim_str)
+        df_regioes = load_vendas_regiao(data_inicio_str, data_fim_str)
+        df_produtos = load_top_produtos(data_inicio_str, data_fim_str)
+        df_canais = load_analise_canais(data_inicio_str, data_fim_str)
 
     # KPIs
     if not df_kpis.empty:
@@ -643,6 +701,150 @@ def pagina_vendas():
             """,
                 unsafe_allow_html=True,
             )
+
+    # Gráfico de tendência
+    if mostrar_tendencia and not df_vendas.empty:
+        st.markdown(
+            '<h2 class="section-title">📈 Evolução Diária de Vendas</h2>',
+            unsafe_allow_html=True,
+        )
+        fig = create_trend_chart(df_vendas)
+        st.plotly_chart(fig, use_container_width=True)
+        st.markdown("---")
+
+    # Grid de gráficos
+    col1, col2 = st.columns(2)
+    with col1:
+        if mostrar_categorias and not df_categorias.empty:
+            st.markdown(
+                '<h2 class="section-title">🏷️ Performance por Categoria</h2>',
+                unsafe_allow_html=True,
+            )
+            fig = create_category_chart(df_categorias)
+            st.plotly_chart(fig, use_container_width=True)
+
+    with col2:
+        if mostrar_regioes and not df_regioes.empty:
+            st.markdown(
+                '<h2 class="section-title">🌎 Vendas por Região</h2>',
+                unsafe_allow_html=True,
+            )
+            fig = create_pie_chart(
+                df_regioes.head(5),
+                "receita_total",
+                "estado",
+                "Distribuição Regional",
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("---")
+
+    # Top produtos
+    if mostrar_produtos and not df_produtos.empty:
+        st.markdown(
+            '<h2 class="section-title">⭐ Top 10 Produtos</h2>',
+            unsafe_allow_html=True,
+        )
+
+        df_produtos_display = df_produtos.head(10).copy()
+        df_produtos_display["receita_total_fmt"] = df_produtos_display[
+            "receita_total"
+        ].apply(format_currency)
+        df_produtos_display["giro_estoque_fmt"] = df_produtos_display[
+            "giro_estoque"
+        ].apply(lambda x: f"{x:.2f}x")
+
+        cols = st.columns(4)
+        for i, (idx, row) in enumerate(df_produtos_display.iterrows(), start=1):
+            with cols[(i - 1) % 4]:
+                st.markdown(
+                    f"""
+                    <div class="metric-card" style="padding: 15px; text-align: left;">
+                        <p style="font-weight:700; color:#0A2472; font-size:18px; margin-bottom:px;">
+                            {i}. {row["nome_produto"][:30]}
+                        </p>
+                        <p style="display:flex; justify-content:space-between; font-size:18px; margin:0;">
+                            <span>💰 {row["receita_total_fmt"]}</span>
+                            <span>📦 {int(row["unidades_vendidas"])}</span>
+                            <span>🔄 {row["giro_estoque_fmt"]}</span>
+                        </p>
+                    </div>
+                """,
+                    unsafe_allow_html=True,
+                )
+
+    st.markdown("---")
+
+    # Análise de canais
+    if mostrar_canais and not df_canais.empty:
+        st.markdown(
+            '<h2 class="section-title">📱 Performance por Canal</h2>',
+            unsafe_allow_html=True,
+        )
+
+    fig = go.Figure()
+
+    # Normalizar os valores para melhor visualização
+    max_receita = df_canais["receita_total"].max()
+    df_canais["receita_normalizada"] = (df_canais["receita_total"] / max_receita) * 100
+
+    fig.add_trace(
+        go.Bar(
+            name="Receita (%)",
+            x=df_canais["canal_venda"],
+            y=df_canais["receita_normalizada"],
+            text=df_canais["receita_total"].apply(
+                lambda x: f"R$ {x:,.2f}".replace(",", "X")
+                .replace(".", ",")
+                .replace("X", "."),
+            ),
+            textposition="auto",
+            insidetextanchor="middle",
+            textfont=dict(
+                size=18,
+                color="white",
+            ),
+            marker_color="#715cba",
+            opacity=0.8,
+        ),
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            name="Pedidos",
+            x=df_canais["canal_venda"],
+            y=df_canais["total_pedidos"],
+            mode="lines+markers+text",
+            text=df_canais["total_pedidos"],
+            textposition="bottom center",
+            line=dict(color="#A23B72", width=3),
+            marker=dict(size=10),
+            yaxis="y2",
+            textfont=dict(
+                size=15,
+                color="white",
+            ),
+        ),
+    )
+
+    fig.update_layout(
+        title="Comparativo: Receita vs Pedidos",
+        yaxis=dict(
+            title="% da Receita",
+            range=[0, 110],
+        ),
+        yaxis2=dict(
+            title="Número de Pedidos",
+            side="right",
+            overlaying="y",
+            range=[0, 85],
+            showgrid=False,
+        ),
+        height=500,
+        template="plotly_white",
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
 
 
 # ============================================
@@ -909,6 +1111,286 @@ def pagina_rfv():
 
 
 # ============================================
+# PÁGINA 3: MÉTRICAS DE ENTREGA
+# ============================================
+def pagina_entregas():
+    st.markdown(
+        '<h1 class="main-header-2">📦 Métricas de Entrega e Logística</h1>',
+        unsafe_allow_html=True,
+    )
+
+    # Sidebar específica para entregas
+    with st.sidebar:
+        st.markdown("## 🚚 Filtros de Logística")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            data_inicio = st.date_input(
+                "📅 Data Inicial",
+                value=datetime.now() - timedelta(days=90),
+                max_value=datetime.now(),
+                key="entrega_inicio",
+            )
+        with col2:
+            data_fim = st.date_input(
+                "📅 Data Final",
+                value=datetime.now(),
+                max_value=datetime.now(),
+                min_value=data_inicio,
+                key="entrega_fim",
+            )
+
+        st.markdown("### 📊 Visualizações")
+        mostrar_tempo_medio = st.checkbox(
+            "Tempo Médio de Entrega",
+            True,
+            key="entrega_tempo",
+        )
+        mostrar_status = st.checkbox("Status das Entregas", True, key="entrega_status")
+        mostrar_regioes = st.checkbox(
+            "Entregas por Região",
+            True,
+            key="entrega_regioes",
+        )
+        mostrar_tendencia = st.checkbox(
+            "Tendência de Entregas",
+            True,
+            key="entrega_tendencia",
+        )
+
+        st.markdown("---")
+        st.markdown(f"**Atualização:** {datetime.now().strftime('%H:%M:%S')}")
+
+    # Converter datas
+    data_inicio_str = data_inicio.strftime("%Y-%m-%d")
+    data_fim_str = data_fim.strftime("%Y-%m-%d")
+
+    # Carregar dados
+    with st.spinner("Carregando métricas de entrega..."):
+        df_tempo = load_tempo_entrega(data_inicio_str, data_fim_str)
+        df_status = load_status(data_inicio_str, data_fim_str)
+        df_regioes = load_region(data_inicio_str, data_fim_str)
+        df_timeline = load_timeline(data_inicio_str, data_fim_str)
+
+    # ============================================
+    # CARDS PRINCIPAIS DE ENTREGA
+    # ============================================
+    if mostrar_tempo_medio and not df_tempo.empty:
+        col1, col2, col3, col4 = st.columns(4)
+
+        with col1:
+            tempo_medio = (
+                df_tempo["dias_medios_entrega"].iloc[0] if not df_tempo.empty else 0
+            )
+            st.markdown(
+                f"""
+                <div class="kpi-card">
+                    <div class="delivery-label">⏱️ TEMPO MÉDIO</div>
+                    <div class="delivery-value">{tempo_medio:.1f} dias</div>
+                    <div>por entrega</div>
+                </div>
+            """,
+                unsafe_allow_html=True,
+            )
+
+        with col2:
+            total_entregas = (
+                df_tempo["total_entregas"].iloc[0] if not df_tempo.empty else 0
+            )
+            st.markdown(
+                f"""
+                <div class="kpi-card">
+                    <div class="delivery-label">📦 TOTAL ENTREGAS</div>
+                    <div class="delivery-value">{format_number(total_entregas)}</div>
+                    <div>no período</div>
+                </div>
+            """,
+                unsafe_allow_html=True,
+            )
+
+    # ============================================
+    # STATUS DAS ENTREGAS
+    # ============================================
+    if mostrar_status and not df_status.empty:
+        col1, col2 = st.columns(2)
+
+        with col1:
+            fig_status = px.pie(
+                df_status,
+                values="quantidade",
+                names="status_entrega",
+                title="Distribuição por Status de Entrega",
+                color_discrete_sequence=["#715cba", "#9988d2"],
+                hole=0.4,
+            )
+            fig_status.update_traces(
+                textposition="inside",
+                textinfo="percent+label",
+                hovertemplate="<b>%{label}</b><br>Quantidade: %{value}<br>Percentual: %{percent}<extra></extra>",
+            )
+            fig_status.update_layout(height=500)
+            st.plotly_chart(fig_status, use_container_width=True)
+
+        with col2:
+            fig_status_bar = go.Figure(
+                data=[
+                    go.Bar(
+                        x=df_status["status_entrega"],
+                        y=df_status["tempo_medio"],
+                        text=df_status["tempo_medio"].apply(lambda x: f"{x:.1f} dias"),
+                        textposition="outside",
+                        marker_color="#715cba",
+                    ),
+                ],
+            )
+            fig_status_bar.update_layout(
+                title="Tempo Médio por Status",
+                xaxis_title="Status",
+                yaxis_title="Dias",
+                height=500,
+            )
+            st.plotly_chart(fig_status_bar, use_container_width=True)
+
+        st.markdown("---")
+
+    # ============================================
+    # ENTREGAS POR REGIÃO
+    # ============================================
+    if mostrar_regioes and not df_regioes.empty:
+        st.markdown(
+            '<h2 class="section-title">🌎 Performance por Região</h2>',
+            unsafe_allow_html=True,
+        )
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            fig_regiao = go.Figure(
+                data=[
+                    go.Bar(
+                        x=df_regioes.head(10)["estado"],
+                        y=df_regioes.head(10)["total_entregas"],
+                        text=df_regioes.head(10)["total_entregas"],
+                        textposition="outside",
+                        marker_color="#715cba",
+                        name="Total Entregas",
+                    ),
+                ],
+            )
+            fig_regiao.update_layout(
+                title="Top 10 Estados por Volume de Entregas",
+                xaxis_title="Estado",
+                yaxis_title="Número de Entregas",
+                height=500,
+            )
+            st.plotly_chart(fig_regiao, use_container_width=True)
+
+        with col2:
+            fig_regiao_tempo = go.Figure(
+                data=[
+                    go.Bar(
+                        x=df_regioes.head(10)["estado"],
+                        y=df_regioes.head(10)["tempo_medio"],
+                        text=df_regioes.head(10)["tempo_medio"].apply(
+                            lambda x: f"{x:.1f} dias",
+                        ),
+                        textposition="outside",
+                        marker_color="#715cba",
+                        name="Tempo Médio",
+                    ),
+                ],
+            )
+            fig_regiao_tempo.update_layout(
+                title="Tempo Médio de Entrega por Estado",
+                xaxis_title="Estado",
+                yaxis_title="Dias",
+                height=500,
+            )
+            st.plotly_chart(fig_regiao_tempo, use_container_width=True)
+
+        st.markdown("---")
+
+    # ============================================
+    # TENDÊNCIA DE ENTREGAS
+    # ============================================
+    if mostrar_tendencia and not df_timeline.empty:
+        st.markdown(
+            '<h2 class="section-title">📈 Tendência de Entregas</h2>',
+            unsafe_allow_html=True,
+        )
+
+        fig_timeline = make_subplots(specs=[[{"secondary_y": True}]])
+
+        fig_timeline.add_trace(
+            go.Scatter(
+                x=df_timeline["data_pedido"],
+                y=df_timeline["dias_entrega"],
+                name="Tempo Médio",
+                line=dict(color="#715cba", width=3),
+                mode="lines+markers",
+            ),
+            secondary_y=False,
+        )
+
+        fig_timeline.add_trace(
+            go.Bar(
+                x=df_timeline["data_pedido"],
+                y=df_timeline["total_entregas_dia"],
+                name="Volume de Entregas",
+                marker_color="#24475e",
+                opacity=0.6,
+            ),
+            secondary_y=True,
+        )
+
+        fig_timeline.update_layout(
+            title="Evolução do Tempo e Volume de Entregas",
+            hovermode="x unified",
+            height=450,
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="center",
+                x=0.5,
+            ),
+        )
+
+        fig_timeline.update_yaxes(title_text="Dias para Entrega", secondary_y=False)
+        fig_timeline.update_yaxes(title_text="Número de Entregas", secondary_y=True)
+
+        st.plotly_chart(fig_timeline, use_container_width=True)
+
+        st.markdown("---")
+
+    # ============================================
+    # TABELA DETALHADA
+    # ============================================
+    st.markdown(
+        '<h2 class="section-title">📋 Detalhamento de Entregas por Região</h2>',
+        unsafe_allow_html=True,
+    )
+
+    df_display = df_regioes.copy()
+    df_display["tempo_medio"] = df_display["tempo_medio"].apply(
+        lambda x: f"{x:.1f} dias",
+    )
+    df_display["taxa_rapida"] = df_display["taxa_rapida"].apply(lambda x: f"{x:.1f}%")
+    df_display["frete_medio"] = df_display["frete_medio"].apply(
+        lambda x: format_currency(x),
+    )
+    df_display.columns = [
+        "Estado",
+        "Total Entregas",
+        "Tempo Médio",
+        "Taxa Rápida (≤3d)",
+        "Frete Médio",
+    ]
+
+    st.dataframe(df_display, use_container_width=True, hide_index=True)
+
+
+# ============================================
 # MENU PRINCIPAL
 # ============================================
 def main():
@@ -941,6 +1423,8 @@ def main():
         pagina_vendas()
     elif pagina == "👥 RFV Clientes":
         pagina_rfv()
+    elif pagina == "📦 Entregas":
+        pagina_entregas()
 
     # Logo e info na sidebar
     with st.sidebar:
