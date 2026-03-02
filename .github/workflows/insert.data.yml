@@ -3,7 +3,7 @@ name: Workflow - Insert Data
 on:
   schedule:
     - cron: '0 12 * * *'
-      timezone: 'America/Sao_Paulo'  # ← ADICIONE ESTA LINHA
+
   workflow_dispatch:
 
 permissions:
